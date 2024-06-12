@@ -1,14 +1,16 @@
 import { pool } from "../../config/db_mysql.js";
+import { tokenSing } from "../middlewares/middleware.usuario.js";
 
 export const mostrarUsuario = async(req, res) =>{
+    let id = req.params.id;
     try {
-        const resultado = await pool.query("select * from usuarios");
-        console.log(resultado[0]);
+        const resultado = await pool.query(`select * from usuario where idusuario = ${id}`);
+        // console.log(resultado[0]);
         res.json(resultado[0]);
         
     } catch (error) {
         res.json({
-            error:"error",
+            "error":error,
             "method":"get"
         });
         
@@ -19,7 +21,8 @@ export const crearUsuario = async(req, res) =>{
     let info = req.body;
     try {
         let resultado = await pool.query(`
-        insert into usuarios (idusuario,
+        insert into usuario (
+            idusuario,
             identificacion,
             nombre,
             correo,
@@ -46,44 +49,42 @@ export const crearUsuario = async(req, res) =>{
 };
 
 
-export const actualizarUsuario = async(req, res) =>{
+export const actualizarUsuario = async (req, res) => {
     let info = req.body;
     try {
-        const resultado = await pool.query(`
-        update usuarios
-        set
+        let resultado = await pool.query(`
+        UPDATE usuario
+        SET
         idusuario = ${info.idusuario},
         identificacion = ${info.identificacion},
         nombre = '${info.nombre}',
         correo = '${info.correo}',
-        contrasena = '${info.cotrasena}',
+        contrasena = '${info.contrasena}',
         telefono = ${info.telefono}
-        where idusuario = ${info.idusuario}
+        WHERE idusuario = ${info.idusuario}
         `);
-        if(resultado[0].affectedRows > 0) {
+        if (resultado[0].affectedRows > 0) {
             res.json({
-                "respuesta": "El usuario a sido actualizado",
+                "respuesta": "El usuario ha sido actualizado"
             });
-        }else{
-            resnjson({
-                "respuesta": "El usuario no se a actualizado",
-
-            });;
+        } else {
+            res.json({
+                "respuesta": "El usuario no ha sido actualizado"
+            });
         }
-        
     } catch (error) {
         res.json({
             "error": error,
             "method": "put"
         });
-    };
+    }
 };
 
 export const eliminarUsuario = async (req, res) =>{
     let info = req.body;
     try {
-        const resultado = await pool.query(`
-        delete from usuarios
+        let resultado = await pool.query(`
+        delete from usuario
         where idusuario = ${info.idusuario} 
         `);
 
@@ -101,5 +102,55 @@ export const eliminarUsuario = async (req, res) =>{
             "error": error,
             "method": "delete"
         });
+    };
+};
+
+
+export const LoginUsuario = async(req, res) => {
+    let correo = req.body.correo;
+    let contrasena = req.body.contrasena;
+    try {
+        let resultado = await pool.query(`
+        select correo from usuario
+        where correo = '${correo}' and contrasena = '${contrasena}'
+        `);
+
+        if(resultado[0]==""){
+            res.json({
+                respuesta:"Logueo Incorrecto",
+                estado: false
+            });
+        }else{
+            let token = tokenSing({
+                correo:correo,
+                contrasena:contrasena
+            });
+            res.json({
+                "respuesta": "Logueo correcto",
+                "estado": true,
+                token:token
+            });
+        }
+    } catch (error) {
+        res.json({
+            respuesta: "Error en el logueo",
+            type: error
+        });
+    }
+}
+
+
+ export const ListarUsuario = async(req, res) =>{
+
+    try {
+        const resultado = await pool.query("select * from usuario");
+        res.json(resultado[0]);
+
+    } catch (error) {
+        res.json({
+            "error": error,
+            "method": get
+        });
+        
     };
 };
